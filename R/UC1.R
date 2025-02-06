@@ -64,88 +64,29 @@ NR_Template <- '
     }
 '
 
-# transform template into valid JSON string 
-# a) set CurrentWorkflowID
-responseJSON <- sub('\\$CWFID\\$', PD_json_in$CurrentWorkflowID, NR_Template)
+sub('\\$CWFID\\$', PD_json_in$CurrentWorkflowID, NR_Template) |>
+  gsub(pattern = "\\$PATH\\$",
+       replacement = dirname(PD_json_in$ExpectedResponsePath)) |>
+  cat(file = PD_json_in$ExpectedResponsePath)
 
-# b) set path of output tables
-nodeResponsePath <- dirname(PD_json_in$ExpectedResponsePath)
-responseJSON2 <- gsub("\\$PATH\\$", nodeResponsePath, responseJSON)
-# print(responseJSON2)
-
-# write node_response.json
-jsonOutFile <- PD_json_in$ExpectedResponsePath
-# print(jsonOutFile)
-jsonfileconn <- file(jsonOutFile)
-writeLines(responseJSON2, jsonfileconn)
-close (jsonfileconn)
 
 # --------------------------- PHASE 2 -------------------------------
 
 # read in the node_response.json file (the one just written out)
-NR_json_in <- fromJSON(file=jsonOutFile)
-# print (NR_json_in)
+NR_json_out <- fromJSON(file=jsonOutFile)
 
-library(data.table)
+library(dplyr)
+library(readr)
 
 # read in input table
-# print (PD_json_in$Tables[[1]]$DataFile)
-protein.input <- data.table( 
-  'Proteins Unique Sequence ID'=character(), 
-  'Coverage in Percent'=numeric()
-)
-protein.input <- fread(PD_json_in$Tables[[1]]$DataFile, integer64 = "character", header = TRUE)
-# print('Proteins data loaded')
+protein.input <- read_delim(PD_json_in$Tables[[1]]$DataFile, delim = '\t') |>
+  
+  # create a new logical column and add in to the input table
+  mutate(`Good Coverage` = ifelse(`Coverage in Percent` > 20, TRUE, FALSE)) |>
 
-#
-#
-#	instead of a non-R style 
-#		(create new table then loop through the input table adding new table rows):
-###
-###	# create new table 
-###	protein.output = data.table(
-###	  'Proteins Unique Sequence ID'=character(),
-###	  'Good Coverage'=logical()
-###	)
-###
-###	# Loop through proteins
-###	for (row in 1:nrow(protein.input)) {
-###	  ins <- protein.input[row]
-###	  ID = ins$'Proteins Unique Sequence ID'
-###
-###	  if (ins$'Coverage in Percent' > 20) {
-###	     coverage = TRUE
-###	  } else {
-###	     coverage = FALSE
-###	  }
-###	  temprow = data.table(
-###				'Proteins Unique Sequence ID'=ID,
-###				'Good Coverage'=coverage
-###				)
-###	  protein.output <- rbind(protein.output, temprow)
-###	}
-###
-### # Write output table
-### # print (NR_json_in$Tables[[1]]$DataFile)
-###	write.table(protein.output, file = NR_json_in$Tables[[1]]$DataFile, sep='\t', row.names=FALSE)
-###
-#	do the same in R style 
-#		(use ifelse to create a new column from input table data, 
-#		add it to the input table, 
-#		remove no longer needed column from the input table,
-#		and write thus modified input table as the output table):
-#
-
-# create a new logical column and add in to the input table
-coverage <- ifelse(protein.input$'Coverage in Percent' > 20, TRUE, FALSE)
-protein.input$'Good Coverage' <- coverage
-
-#remove 2nd column from the input table
-protein.input[,'Coverage in Percent':=NULL]
+  #remove 2nd column from the input table
+  select(-`Coverage in Percent`)
 
 
 # Write modified input table as output table
-# print (NR_json_in$Tables[[1]]$DataFile)
-write.table(protein.input, file = NR_json_in$Tables[[1]]$DataFile, sep='\t', row.names=FALSE)
-
-print('Done.')
+write_delim(protein.input, file = NR_json_out$Tables[[1]]$DataFile, sep='\t', row.names=FALSE)
