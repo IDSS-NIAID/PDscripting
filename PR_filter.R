@@ -7,7 +7,7 @@
 #### Setup ####
 #' Requested tables and columns: "Proteins: Accession, Abundances Normalized, Found in Samples"
 
-debug_dir <- file.path('~', 'Downloads')
+debug_dir <- 'C:/Users/cormierkw/Downloads'
 
 
 library(rjson)
