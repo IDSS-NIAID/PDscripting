@@ -138,7 +138,7 @@ node_response = list(CurrentWorkflowID = node_args$CurrentWorkflowID,
                      Tables = list(list(TableName = "Proteins",
                                         DataFile  = file.path(out_dir, 'to_pd.tsv'),
                                         DataFormat = "CSV",
-                                        Options = '{}',
+                                        Options = NULL,
                                         ColumnDescriptions = list())
                                   )
                     )
@@ -161,4 +161,5 @@ for(i in 1:length(node_args$Tables[[1]]$ColumnDescriptions))
 
 
 toJSON(node_response, indent = 2) |>
+  str_replace_all(fixed('"{}"'), '{}') |> # for some reason it wants to quote empty lists
   cat(file = node_args$ExpectedResponsePath)
