@@ -24,10 +24,11 @@ llod <- 1e6
 
 #### Read in node args from PD ####
 
-node_args <- fromJSON(file = commandArgs(trailingOnly = TRUE)[1])
-
-if(FALSE)
+if(!interactive())
 {
+  # this will run on the scripting node (it runs in batch mode)
+  node_args <- fromJSON(file = commandArgs(trailingOnly = TRUE)[1])
+}else{
   # for manual debugging
   node_args <- fromJSON(file = 'debug/node_args.json')
   
@@ -51,13 +52,24 @@ colTypes <- tibble(name = map_chr(node_args$Tables[[1]]$ColumnDescriptions, ~ .x
                                               .x$DataType == "String"  ~ 'c',
                                               .x$DataType == "Int"     ~ 'i',
                                               TRUE                     ~ '?')),
-                   new_name = case_when(grepl("Abundances Normalized", name) ~ str_replace(name, ' ', '.') |> # convert to "Abundances.Normalized <sample Id>"
-                                                                               str_replace(' ', '_') |>       # convert to "Abundances_Normalized_<sample Id>"
-                                                                               str_replace_all(' ', '.'),     # convert to "Abundances.Normalized_<sample.Id>"
-                                         grepl("Found in Sample", name)      ~ str_replace(name, ' ', '.') |> # convert to "Found.in.Samples <sample Id>"
+                   new_name = case_when(grepl("Abundances Normalized", name) ~ str_replace(name, ' ', '.') |> # convert to "Abundances.Normalized <sample Id>.Sample"
+                                                                               str_replace(' ', '_') |>       # convert to "Abundances.Normalized_<sample Id>.Sample"
+                                                                               str_replace_all(' ', '.'),     # convert to "Abundances.Normalized_<sample.Id>.Sample"
+
+                                         grepl("Found in Sample", name)      ~ str_replace(name, ' ', '.') |> # convert to "Found.in.Samples <sample Id>.Sample"
                                                                                str_replace(' ', '.') |> 
-                                                                               str_replace(' ', '_') |>       # convert to "Found.in.Samples_<sample Id>"
-                                                                               str_replace_all(' ', '.'),     # convert to "Found.in.Samples_<sample.Id>"
+                                                                               str_replace(' ', '_') |>       # convert to "Found.in.Samples_<sample Id>.Sample"
+                                                                               str_replace_all(' ', '.'),     # convert to "Found.in.Samples_<sample.Id>.Sample"
+
+                                        grepl("Abundance Ratio", name)       ~ str_replace(name, ' ', '.') |> # convert to "Abundance.Ratio* <sample Id>  <sample Id>"
+                                                                               str_replace('Ratio log2', 'Ratio.log2') |>
+                                                                               str_replace(' ', '_') |>       # convert to "Abundance.Ratio*_<sample Id>  <sample Id>"
+                                                                               str_replace('  ', '/') |>      # convert to "Abundance.Ratio*_<sample Id>/<sample Id>"
+                                                                               str_replace(' ', '.'),         # convert to "Abundance.Ratio*_<sample.Id>/<sample.Id>"
+                                        
+                                        grepl('Abundances Grouped', name)    ~ str_replace(name, ' ', '.') |> # convert to "Abundances.Grouped <sample Id>"
+                                                                               str_replace(' ', '_') |>       # convert to "Abundances.Grouped_<sample Id>"
+                                                                               str_replace_all(' ', '.'),     # convert to "Abundances.Grouped_<sample.Id>"
                                         TRUE ~ name))
 
 
@@ -96,18 +108,30 @@ for(i in 1:ncol(dat))
 colnames(dat) <- colTypes$new_name
 
 
+#### Filtering checks ####
+
 # convert to long format for summarization
-dat_long <- dat |>
-  pivot_longer(cols = starts_with("Abundances") | starts_with("Found"),
+dat_check <- dat |>
+  select(`Proteins Unique Sequence ID`,
+         Accession, 
+         starts_with("Abundances.Normalized"),
+         starts_with("Found.in.Sample")) |>
+  
+  pivot_longer(cols = starts_with("Abundances.Normalized") | starts_with("Found.in.Sample"),
                names_to = c(".value", "sample_replicate"),
                names_pattern = "(.*)_(.*)") |>
-  mutate(sample = str_replace(sample_replicate, 'F\\d+\\.Sample\\.', '') |>
-                  str_replace('BR\\d+\\.', ''))
+  
+         # pull out the condition
+  mutate(condition = str_replace(sample_replicate, 'F\\d+\\.Sample', '') |>
+                     str_replace('BR\\d+\\.', '') |>
+                     str_replace('^\\.', ''),
+         
+         # if there is no condition to group by, simply go with the sample replicate
+         sample = ifelse(condition == '', 
+                         str_replace(sample_replicate, '\\.Sample', ''), 
+                         condition)) |>
 
-
-# filter out samples with too many missing or low values
-dat_filtered <- dat_long |>
-
+  # filter out samples with too many missing or low values
   # count good abundances per sample
   group_by(`Proteins Unique Sequence ID`, Accession, sample) |>
   mutate(thresh_good = ceiling(n() * prop_good),
@@ -115,24 +139,66 @@ dat_filtered <- dat_long |>
   ungroup() |>
   
   # filter any samples that don't meet the threshold
-  mutate(Abundances.Normalized = ifelse(ngood >= thresh_good, Abundances.Normalized, NA)) |>
-  
-  # pivot back to wide format
-  pivot_wider(names_from = sample_replicate,
-              values_from = c("Abundances.Normalized", "Found.in.Sample")) |>
+  mutate(drop = ngood >= thresh_good,
+         Abundances.Normalized = ifelse(drop, Abundances.Normalized, NA)) |>
   
   # drop unnecessary columns
-  select(-Accession, -ngood, -thresh_good, -sample, -starts_with("Found"))
+  select(-Accession, -ngood, -thresh_good, -sample_replicate, -condition) |>
+
+  # pivot back to wide format
+  pivot_wider(names_from = sample,
+              values_from = c("drop", "Abundances.Normalized", "Found.in.Sample"))
+  
+
+#### Do the actual filtering ####
+
+# convert ratio columns to long format
+dat_filtered <- dat |>
+  
+  select(`Proteins Unique Sequence ID`,
+         starts_with("Abundance.Ratio")) |>
+  
+  pivot_longer(cols = starts_with("Abundance.Ratio"),
+               names_to = c(".value", "samples"),
+               names_pattern = "(.*)_(.*)") |>
+  
+  mutate(numer = paste0('drop_', str_split(samples, '\\/', simplify = TRUE)[, 1]),
+         denom = paste0('drop_', str_split(samples, '\\/', simplify = TRUE)[, 2]),
+         drop = FALSE)
+
+# check against filtering checks
+for(i in 1:nrow(dat_filtered))
+{
+  # row of dat_check to check against
+  j <- which(dat_check$`Proteins Unique Sequence ID` == dat_filtered$`Proteins Unique Sequence ID`[i])
+  
+  # check if numerator and denominator are both good
+  if(!dat_check[[ dat_filtered$numer[i] ]][j] |
+     !dat_check[[ dat_filtered$denom[i] ]][j])
+  {
+    dat_filtered$drop[i] <- TRUE
+  }
+}
+
+# filter and make wide again
+dat_filtered <- dat_filtered |>
+  filter(!drop) |>
+  select(-drop, -numer, -denom) |>
+  
+  pivot_wider(names_from = samples,
+              values_from = starts_with("Abundance.Ratio"))
+
+# update column names
+colnames(dat_filtered) <- str_replace(colnames(dat_filtered), 'Abundance', 'Filtered.Abundance')
 
 
-# update column names and write file
-colnames(dat_filtered) <- str_replace(colnames(dat_filtered), 'Normalized', 'Normalized.Filtered')
+#### Write output file ####
 
 out_dir <- dirname(node_args$Tables[[1]]$DataFile)
-write_delim(dat_filtered, file = file.path(out_dir, 'to_pd.tsv'))
+write_delim(dat_filtered, file = file.path(out_dir, 'to_pd.tsv'), delim = '\t')
 
 
-#### Write output to PD ####
+#### Write node response file ####
 
 node_response = list(CurrentWorkflowID = node_args$CurrentWorkflowID,
                      Tables = list(list(TableName = "Proteins",
@@ -143,23 +209,34 @@ node_response = list(CurrentWorkflowID = node_args$CurrentWorkflowID,
                                   )
                     )
 
+# update colTypes with new names
+colTypes_updt <- mutate(colTypes,
+                        new_name = str_replace(new_name, fixed('Abundance.Ratio'), 'Filtered.Abundance.Ratio'))
+
+
+# loop over new column names
 nextCol <- 1
-for(i in 1:length(node_args$Tables[[1]]$ColumnDescriptions))
+for(nn in names(dat_filtered))
 {
-  if(node_args$Tables[[1]]$ColumnDescriptions[[i]]$ColumnName == "Proteins Unique Sequence ID")
+  # figure out which old name we are looking for
+  on <- colTypes_updt$name[colTypes_updt$new_name == nn]
+  
+  for(j in 1:length(node_args$Tables[[1]]$ColumnDescriptions))
   {
-    node_response$Tables[[1]]$ColumnDescriptions[[nextCol]] <- node_args$Tables[[1]]$ColumnDescriptions[[i]]
-    nextCol <- nextCol + 1
-  }else if(grepl("Abundances Normalized", node_args$Tables[[1]]$ColumnDescriptions[[i]]$ColumnName)){
-    node_response$Tables[[1]]$ColumnDescriptions[[nextCol]] <- node_args$Tables[[1]]$ColumnDescriptions[[i]]
-    
-    node_response$Tables[[1]]$ColumnDescriptions[[nextCol]]$ColumnName <- names(dat_filtered)[nextCol]
-    node_response$Tables[[1]]$ColumnDescriptions[[nextCol]]$Options[[1]] <- "AbundancesFiltered"
-    nextCol <- nextCol + 1
+    # when we find it, copy metadata over and update
+    if(node_args$Tables[[1]]$ColumnDescriptions[[j]]$ColumnName == on)
+    {
+      node_response$Tables[[1]]$ColumnDescriptions[[nextCol]] <- node_args$Tables[[1]]$ColumnDescriptions[[j]]
+      
+      node_response$Tables[[1]]$ColumnDescriptions[[nextCol]]$ColumnName <- nn
+      
+      nextCol <- nextCol + 1
+    }
   }
 }
 
 
 toJSON(node_response, indent = 2) |>
   str_replace_all(fixed('"{}"'), '{}') |> # for some reason it wants to quote empty lists
+  str_replace_all(fixed("[\n\n          ]\n"), "{}") |> # for some reason we end up with these, too
   cat(file = node_args$ExpectedResponsePath)
