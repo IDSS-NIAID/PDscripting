@@ -56,20 +56,24 @@ colTypes <- tibble(name = map_chr(node_args$Tables[[1]]$ColumnDescriptions, ~ .x
                                                                                str_replace(' ', '_') |>       # convert to "Abundances.Normalized_<sample Id>.Sample"
                                                                                str_replace_all(' ', '.'),     # convert to "Abundances.Normalized_<sample.Id>.Sample"
 
-                                         grepl("Found in Sample", name)      ~ str_replace(name, ' ', '.') |> # convert to "Found.in.Samples <sample Id>.Sample"
+                                         grepl("Found in Sample",      name) ~ str_replace(name, ' ', '.') |> # convert to "Found.in.Samples <sample Id>.Sample"
                                                                                str_replace(' ', '.') |> 
                                                                                str_replace(' ', '_') |>       # convert to "Found.in.Samples_<sample Id>.Sample"
                                                                                str_replace_all(' ', '.'),     # convert to "Found.in.Samples_<sample.Id>.Sample"
 
-                                        grepl("Abundance Ratio", name)       ~ str_replace(name, ' ', '.') |> # convert to "Abundance.Ratio* <sample Id>  <sample Id>"
+                                        grepl("Abundance Ratio",       name) ~ str_replace(name, ' ', '.') |> # convert to "Abundance.Ratio* <sample Id>  <sample Id>"
                                                                                str_replace('Ratio log2', 'Ratio.log2') |>
+                                                                               str_replace('Ratio Adj', 'Ratio.Adj') |>
+                                                                               str_replace(' P-Value', '.P-Value') |>
                                                                                str_replace(' ', '_') |>       # convert to "Abundance.Ratio*_<sample Id>  <sample Id>"
                                                                                str_replace('  ', '/') |>      # convert to "Abundance.Ratio*_<sample Id>/<sample Id>"
-                                                                               str_replace(' ', '.'),         # convert to "Abundance.Ratio*_<sample.Id>/<sample.Id>"
+                                                                               str_replace_all(' ', '.'),     # convert to "Abundance.Ratio*_<sample.Id>/<sample.Id>"
                                         
-                                        grepl('Abundances Grouped', name)    ~ str_replace(name, ' ', '.') |> # convert to "Abundances.Grouped <sample Id>"
-                                                                               str_replace(' ', '_') |>       # convert to "Abundances.Grouped_<sample Id>"
-                                                                               str_replace_all(' ', '.'),     # convert to "Abundances.Grouped_<sample.Id>"
+                                        grepl('Abundances Grouped',    name) ~ str_replace(name, ' ', '.') |> # convert to "Abundances.Grouped* <sample Id>"
+                                                                               str_replace('Grouped Count', 'Grouped.Count') |>
+                                                                               str_replace(' ', '_') |>       # convert to "Abundances.Grouped*_<sample Id>"
+                                                                               str_replace_all(' ', '.'),     # convert to "Abundances.Grouped*_<sample.Id>"
+                                        
                                         TRUE ~ name))
 
 
@@ -96,10 +100,19 @@ for(i in 1:ncol(dat))
   }
   
   # expected integer columns but read in as character
-  # these seem to be more like factors than integers - leave as characters
+  # many of these seem to be more like factors than integers, but not all :P
   if(colTypes$type[i] == 'i' & is(dat[[i]], 'character'))
   {
-    dat[[i]] <- str_trim(dat[[i]])
+    dat[[i]] <- str_trim(dat[[i]])                   # remove white space
+    dat[[i]] <- ifelse(dat[[i]] == '', NA, dat[[i]]) # remove blanks
+    
+    # if all values are actually integers, convert to integer
+    if(all(!is.na(as.integer(names(table(dat[[i]]))))))
+    {
+      dat[[i]] <- as.integer(dat[[i]])
+    }
+  }else if(colTypes$type[i] == 'i' & is(dat[[i]], 'numeric')){
+    dat[[i]] <- as.integer(dat[[i]])
   }
 }
 
@@ -129,7 +142,10 @@ dat_check <- dat |>
          # if there is no condition to group by, simply go with the sample replicate
          sample = ifelse(condition == '', 
                          str_replace(sample_replicate, '\\.Sample', ''), 
-                         condition)) |>
+                         condition),
+         
+         # get the replicate
+         rep = str_extract(sample_replicate, 'F\\d+')) |>
 
   # filter out samples with too many missing or low values
   # count good abundances per sample
@@ -139,24 +155,40 @@ dat_check <- dat |>
   ungroup() |>
   
   # filter any samples that don't meet the threshold
-  mutate(drop = ngood >= thresh_good,
-         Abundances.Normalized = ifelse(drop, Abundances.Normalized, NA)) |>
+  mutate(drop = ngood < thresh_good,
+         Abundances.Normalized = ifelse(drop, Abundances.Normalized, NA),
+         id = paste(rep, sample, sep = '_')) |>
   
   # drop unnecessary columns
-  select(-Accession, -ngood, -thresh_good, -sample_replicate, -condition) |>
+  select(-Accession, -ngood, -thresh_good, -sample_replicate, -condition, -starts_with("Found.in.Sample"),
+         -rep, -sample) |>
 
   # pivot back to wide format
-  pivot_wider(names_from = sample,
-              values_from = c("drop", "Abundances.Normalized", "Found.in.Sample"))
-  
+  pivot_wider(names_from = id,
+              values_from = c("drop", "Abundances.Normalized"))
+
+# this is a bit hacky... there is probably a better way to do this, but it works
+for(i in 1:ncol(dat_check))
+{
+  if(grepl('drop_', names(dat_check)[i]))
+  {
+    grp_name <- str_replace(names(dat_check)[[i]], 'F\\d+_', '')
+    # remove replicate ID from drop names (these are grouped names)
+    dat_check[[grp_name]] <- dat_check[[i]]
+  }
+}
+
+dat_check <- select(dat_check, -starts_with('drop_F\\d+'))
+
 
 #### Do the actual filtering ####
 
 # convert ratio columns to long format
-dat_filtered <- dat |>
+ratio_filter <- dat |>
   
   select(`Proteins Unique Sequence ID`,
-         starts_with("Abundance.Ratio")) |>
+         starts_with("Abundance.Ratio")) |>#,
+#         starts_with("Abundances.Grouped")) |>
   
   pivot_longer(cols = starts_with("Abundance.Ratio"),
                names_to = c(".value", "samples"),
@@ -167,21 +199,21 @@ dat_filtered <- dat |>
          drop = FALSE)
 
 # check against filtering checks
-for(i in 1:nrow(dat_filtered))
+for(i in 1:nrow(ratio_filter))
 {
   # row of dat_check to check against
-  j <- which(dat_check$`Proteins Unique Sequence ID` == dat_filtered$`Proteins Unique Sequence ID`[i])
+  j <- which(dat_check$`Proteins Unique Sequence ID` == ratio_filter$`Proteins Unique Sequence ID`[i])
   
   # check if numerator and denominator are both good
-  if(!dat_check[[ dat_filtered$numer[i] ]][j] |
-     !dat_check[[ dat_filtered$denom[i] ]][j])
+  if(!dat_check[[ ratio_filter$numer[i] ]][j] |
+     !dat_check[[ ratio_filter$denom[i] ]][j])
   {
-    dat_filtered$drop[i] <- TRUE
+    ratio_filter$drop[i] <- TRUE
   }
 }
 
 # filter and make wide again
-dat_filtered <- dat_filtered |>
+ratio_filter <- ratio_filter |>
   filter(!drop) |>
   select(-drop, -numer, -denom) |>
   
@@ -189,7 +221,52 @@ dat_filtered <- dat_filtered |>
               values_from = starts_with("Abundance.Ratio"))
 
 # update column names
-colnames(dat_filtered) <- str_replace(colnames(dat_filtered), 'Abundance', 'Filtered.Abundance')
+colnames(ratio_filter) <- str_replace(colnames(ratio_filter), 'Abundance', 'Filtered.Abundance')
+
+
+# convert grouped abundance columns to long format
+grouped_filter <- dat |>
+  
+  select(`Proteins Unique Sequence ID`,
+         starts_with("Abundances.Grouped")) |>
+  
+  pivot_longer(cols = starts_with("Abundances.Grouped"),
+               names_to = c(".value", "sample"),
+               names_pattern = "(.*)_(.*)") |>
+  
+  mutate(smp = paste0('drop_', sample),
+         drop = FALSE)
+
+# check against filtering checks
+for(i in 1:nrow(grouped_filter))
+{
+  # row of dat_check to check against
+  j <- which(dat_check$`Proteins Unique Sequence ID` == grouped_filter$`Proteins Unique Sequence ID`[i])
+  
+  # check if sample is good
+  if(!dat_check[[ grouped_filter$smp[i] ]][j])
+  {
+    grouped_filter$drop[i] <- TRUE
+  }
+}
+
+# filter and make wide again
+grouped_filter <- grouped_filter |>
+  filter(!drop) |>
+  select(-drop, -smp) |>
+  
+  pivot_wider(names_from = sample,
+              values_from = starts_with("Abundances.Grouped"))
+
+# update column names
+colnames(grouped_filter) <- str_replace(colnames(grouped_filter), 'Abundances', 'Filtered.Abundances')
+
+
+# join filtered data
+dat_filtered <- dat |>
+  select(`Proteins Unique Sequence ID`, starts_with("Accession")) |>
+  left_join(ratio_filter, by = "Proteins Unique Sequence ID") |>
+  left_join(grouped_filter, by = "Proteins Unique Sequence ID")
 
 
 #### Write output file ####
@@ -204,14 +281,15 @@ node_response = list(CurrentWorkflowID = node_args$CurrentWorkflowID,
                      Tables = list(list(TableName = "Proteins",
                                         DataFile  = file.path(out_dir, 'to_pd.tsv'),
                                         DataFormat = "CSV",
-                                        Options = NULL,
+                                        Options = "{}",
                                         ColumnDescriptions = list())
                                   )
                     )
 
 # update colTypes with new names
 colTypes_updt <- mutate(colTypes,
-                        new_name = str_replace(new_name, fixed('Abundance.Ratio'), 'Filtered.Abundance.Ratio'))
+                        new_name = str_replace(new_name, fixed('Abundance.Ratio'), 'Filtered.Abundance.Ratio') |>
+                                   str_replace(          fixed('Abundances.Grouped'), 'Filtered.Abundances.Grouped'))
 
 
 # loop over new column names
