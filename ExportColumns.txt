@@ -1,0 +1,1 @@
+Proteins: Accession,Abundances Normalized,Found in Samples,Abundance Ratio Adj P-Value,Abundance Ratio P-Value,Abundance Ratios,Abundance Ratios log2,Abundances Grouped,Abundances Grouped Count,Abundances Grouped CV,Abundances Scaled
