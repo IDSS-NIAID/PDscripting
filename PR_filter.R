@@ -218,10 +218,12 @@ ratio_filter <- ratio_filter |>
   select(-drop, -numer, -denom) |>
   
   pivot_wider(names_from = samples,
-              values_from = starts_with("Abundance.Ratio"))
+              values_from = starts_with("Abundance.Ratio"),
+              names_glue = "{.value}_{.name}") # make sure we get the full names - this will create some annoying duplicate labels, but we'll fix that below
 
 # update column names
-colnames(ratio_filter) <- str_replace(colnames(ratio_filter), 'Abundance', 'Filtered.Abundance')
+colnames(ratio_filter) <- str_replace(colnames(ratio_filter), 'Abundance', 'Filtered.Abundance') |>
+  str_replace("_(.*?)_", "_") # fix annoying duplication of labels in some cases
 
 
 # convert grouped abundance columns to long format
@@ -256,17 +258,17 @@ grouped_filter <- grouped_filter |>
   select(-drop, -smp) |>
   
   pivot_wider(names_from = sample,
-              values_from = starts_with("Abundances.Grouped"))
+              values_from = starts_with("Abundances.Grouped"),
+              names_glue = "{.value}_{.name}") # make sure we get the full names - this will create some annoying duplicate labels, but we'll fix that below
 
 # update column names
-colnames(grouped_filter) <- str_replace(colnames(grouped_filter), 'Abundances', 'Filtered.Abundances')
+colnames(grouped_filter) <- str_replace(colnames(grouped_filter), 'Abundances', 'Filtered.Abundances') |>
+  str_replace("_(.*?)_", "_") # fix annoying duplication of labels in some cases
 
 
 # join filtered data
-dat_filtered <- dat |>
-  select(`Proteins Unique Sequence ID`, starts_with("Accession")) |>
-  left_join(ratio_filter, by = "Proteins Unique Sequence ID") |>
-  left_join(grouped_filter, by = "Proteins Unique Sequence ID")
+dat_filtered <- full_join(ratio_filter, grouped_filter, 
+                          by = "Proteins Unique Sequence ID")
 
 
 #### Write output file ####
@@ -281,7 +283,7 @@ node_response = list(CurrentWorkflowID = node_args$CurrentWorkflowID,
                      Tables = list(list(TableName = "Proteins",
                                         DataFile  = file.path(out_dir, 'to_pd.tsv'),
                                         DataFormat = "CSV",
-                                        Options = "{}",
+                                        Options = NULL,
                                         ColumnDescriptions = list())
                                   )
                     )
