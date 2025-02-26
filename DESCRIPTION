@@ -1,0 +1,21 @@
+Package: PDscripting
+Title: Functions to faciliate running PD scripting node scripts
+Version: 0.0.1
+Authors@R: 
+    person("Randy", "Johnson", email = "randall.johnson@nih.gov", role = c("aut", "cre"))
+Description: This package contains functions to facilitate wrangling of PD scripting node files and output, as well as other functions we find useful for post-PD analysis (e.g. filtering by condition).
+License: MIT + file LICENSE
+Imports:
+  dplyr,
+  jsonlite,
+  methods,
+  purrr,
+  readr,
+  rlang,
+  stringr,
+  tidyr
+URL: https://github.com/IDSS-NIAID/PDscripting
+BugReports: https://github.com/IDSS-NIAID/PDscripting/issues
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2

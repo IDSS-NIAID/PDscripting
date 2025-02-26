@@ -1,0 +1,7 @@
+^PDscripting\.Rproj$
+^\.Rproj\.user$
+
+debug/
+scripts/
+PDexample/
+^LICENSE\.md$
