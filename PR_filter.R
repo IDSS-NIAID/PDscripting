@@ -167,18 +167,7 @@ dat_check <- dat |>
   pivot_wider(names_from = id,
               values_from = c("drop", "Abundances.Normalized"))
 
-# this is a bit hacky... there is probably a better way to do this, but it works
-for(i in 1:ncol(dat_check))
-{
-  if(grepl('drop_', names(dat_check)[i]))
-  {
-    grp_name <- str_replace(names(dat_check)[[i]], 'F\\d+_', '')
-    # remove replicate ID from drop names (these are grouped names)
-    dat_check[[grp_name]] <- dat_check[[i]]
-  }
-}
-
-dat_check <- select(dat_check, -starts_with('drop_F\\d+'))
+colnames(dat_check) <- str_replace(colnames(dat_check), '_(.*?)_', '_') # fix annoying duplication of labels in some cases
 
 
 #### Do the actual filtering ####
