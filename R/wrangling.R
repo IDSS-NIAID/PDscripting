@@ -124,6 +124,7 @@ PD_clean <- function(file, colTypes)
 #' @param dat_filtered filtered data frame to write out
 #' @param colTypes column types data.frame from `PD_colTypes()`
 #' @param startsWith Character value identifying columns to check (passed to `starts_with()`)
+#' @param save Logical value indicating whether to save the node response file
 #'
 #' @description
 #' This function writes out the node response file to the location defined in `node_args$ExpectedResponsePath`
@@ -133,7 +134,7 @@ PD_clean <- function(file, colTypes)
 #' @importFrom dplyr mutate
 #' @importFrom rjson toJSON
 #' @importFrom stringr fixed str_replace str_replace_all
-write_PD_response <- function(node_args, dat_filtered, colTypes, startsWith)
+write_PD_response <- function(node_args, dat_filtered, colTypes, startsWith, save = TRUE)
 {
   # take care of annoying no visible binding notes
   if(FALSE)
@@ -185,11 +186,14 @@ write_PD_response <- function(node_args, dat_filtered, colTypes, startsWith)
     }
   }
 
-  # write out node response
-  toJSON(node_response, indent = 2) |>
-    str_replace_all(fixed('"{}"'), '{}') |> # for some reason it wants to quote empty lists
-    str_replace_all(fixed("[\n\n          ]\n"), "{}") |> # for some reason we end up with these, too
-    cat(file = node_args$ExpectedResponsePath)
+  if(save)
+  {
+    # write out node response
+    toJSON(node_response, indent = 2) |>
+      str_replace_all(fixed('"{}"'), '{}') |> # for some reason it wants to quote empty lists
+      str_replace_all(fixed("[\n\n          ]\n"), "{}") |> # for some reason we end up with these, too
+      cat(file = node_args$ExpectedResponsePath)
+  }
 
   invisible(node_response)
 }

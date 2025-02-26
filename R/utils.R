@@ -29,7 +29,7 @@ read_sample_node_args <- function(set = NULL)
 
   # read in the file
   node_args <- rjson::fromJSON(file = file)
-  node_args$Tables$DataFile <- eval(parse(text = node_args$Tables$DataFile))
+  node_args$Tables[[1]]$DataFile <- eval(parse(text = node_args$Tables[[1]]$DataFile))
 
   return(node_args)
 }

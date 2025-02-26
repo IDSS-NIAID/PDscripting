@@ -9,11 +9,8 @@
 
 
 library(rjson)
-library(dplyr)
-library(readr)
-library(purrr)
 library(stringr)
-library(tidyr)
+library(PDscripting)
 
 # proportion of samples with non-missing, above-detection-limit values required to keep abundance measures
 prop_good <- 0.5
@@ -29,14 +26,16 @@ if(!interactive())
   # this will run on the scripting node (it runs in batch mode)
   node_args <- fromJSON(file = commandArgs(trailingOnly = TRUE)[1])
 }else{
+  root <- here::here()
+
   # for manual debugging
-  node_args <- fromJSON(file = 'debug/node_args.json')
-  
+  node_args <- fromJSON(file = file.path(root, 'debug', 'node_args.json'))
+
   # change paths to `debug/`
-  node_args$Tables[[1]]$DataFile <- str_replace(node_args$Tables[[1]]$DataFile, 
+  node_args$Tables[[1]]$DataFile <- str_replace(node_args$Tables[[1]]$DataFile,
                                                 fixed(dirname(node_args$Tables[[1]]$DataFile)),
                                                 'debug')
-  node_args$ExpectedResponsePath <- str_replace(node_args$ExpectedResponsePath, 
+  node_args$ExpectedResponsePath <- str_replace(node_args$ExpectedResponsePath,
                                                 fixed(dirname(node_args$ExpectedResponsePath)),
                                                 'debug')
 }
@@ -56,8 +55,7 @@ dat <- PD_clean(node_args$Tables[[1]]$DataFile, colTypes)
 dat_check <- PD_check_missingness(dat, startsWith = "Abundances.Normalized")
 
 
-#### Do the actual filtering ####
-
+# actual filtering
 grouped_filter <- PD_filter(dat, dat_check, "Abundances.Grouped", ratio = FALSE)
 ratio_filter   <- PD_filter(dat, dat_check, "Abundance.Ratio",    ratio = TRUE)
 
@@ -68,7 +66,7 @@ dat_filtered <- full_join(grouped_filter, ratio_filter,
 
 #### Write output file ####
 
-write_delim(dat_filtered, 
+write_delim(dat_filtered,
             file = file.path(dirname(node_args$Tables[[1]]$DataFile),
                              'to_pd.tsv'),
             delim = '\t')
