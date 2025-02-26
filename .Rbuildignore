@@ -1,7 +1,9 @@
 ^PDscripting\.Rproj$
 ^\.Rproj\.user$
 
+^LICENSE\.md$
+
 debug/
 scripts/
 PDexample/
-^LICENSE\.md$
+data-raw/

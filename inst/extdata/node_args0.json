@@ -1,0 +1,93 @@
+{
+  "CurrentWorkflowID": 1147,
+  "ExpectedResponsePath": "node_response0.json",
+  "ResultFilePath": "test0.pdResult",
+  "NodeParameters": {},
+  "Version": 1,
+  "Tables": [
+    {
+      "TableName": "Proteins",
+      "DataFile": "system.file('extdata', 'TargetProtein0.txt', package = 'PDscripting')",
+      "DataFormat": "CSV",
+      "Options": {},
+      "ColumnDescriptions": [
+        {
+          "ColumnName": "Proteins Unique Sequence ID",
+          "ID": "ID",
+          "DataType": "Long",
+          "Options": {}
+        },
+        {
+          "ColumnName": "Accession",
+          "ID": "",
+          "DataType": "String",
+          "Options": {}
+        },
+        {
+          "ColumnName": "Abundances Normalized F7 Sample",
+          "ID": "",
+          "DataType": "Float",
+          "Options": {
+            "DataGroupName": "AbundancesNormalized"
+          }
+        },
+        {
+          "ColumnName": "Abundances Normalized F8 Sample",
+          "ID": "",
+          "DataType": "Float",
+          "Options": {
+            "DataGroupName": "AbundancesNormalized"
+          }
+        },
+        {
+          "ColumnName": "Found in Sample F7 Sample",
+          "ID": "",
+          "DataType": "Int",
+          "Options": {
+            "DataGroupName": "FoundinSamples"
+          }
+        },
+        {
+          "ColumnName": "Found in Sample F8 Sample",
+          "ID": "",
+          "DataType": "Int",
+          "Options": {
+            "DataGroupName": "FoundinSamples"
+          }
+        },
+        {
+          "ColumnName": "Abundance Ratio F7  F8",
+          "ID": "",
+          "DataType": "Float",
+          "Options": {
+            "DataGroupName": "AbundanceRatios"
+          }
+        },
+        {
+          "ColumnName": "Abundance Ratio log2 F7  F8",
+          "ID": "",
+          "DataType": "Float",
+          "Options": {
+            "DataGroupName": "AbundanceRatioslog2"
+          }
+        },
+        {
+          "ColumnName": "Abundances Grouped F7",
+          "ID": "",
+          "DataType": "Float",
+          "Options": {
+            "DataGroupName": "AbundancesGrouped"
+          }
+        },
+        {
+          "ColumnName": "Abundances Grouped F8",
+          "ID": "",
+          "DataType": "Float",
+          "Options": {
+            "DataGroupName": "AbundancesGrouped"
+          }
+        }
+      ]
+    }
+  ]
+}

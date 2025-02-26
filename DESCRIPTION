@@ -7,7 +7,7 @@ Description: This package contains functions to facilitate wrangling of PD scrip
 License: MIT + file LICENSE
 Imports:
   dplyr,
-  jsonlite,
+  rjson,
   methods,
   purrr,
   readr,

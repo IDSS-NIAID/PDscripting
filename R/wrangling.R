@@ -131,7 +131,7 @@ PD_clean <- function(file, colTypes)
 #' @return Invisibly returns node_response JSON list
 #' @export
 #' @importFrom dplyr mutate
-#' @importFrom jsonlite toJSON
+#' @importFrom rjson toJSON
 #' @importFrom stringr fixed str_replace str_replace_all
 write_PD_response <- function(node_args, dat_filtered, colTypes, startsWith)
 {

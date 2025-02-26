@@ -1,0 +1,189 @@
+{
+  "CurrentWorkflowID": 1145,
+  "ExpectedResponsePath": "node_response1.json",
+  "ResultFilePath": "test1.pdResult",
+  "NodeParameters": {},
+  "Version": 1,
+  "Tables": [
+    {
+      "TableName": "Proteins",
+      "DataFile": "system.file('extdata', 'TargetProtein1.txt', package = 'PDscripting')",
+      "DataFormat": "CSV",
+      "Options": {},
+      "ColumnDescriptions": [
+        {
+          "ColumnName": "Proteins Unique Sequence ID",
+          "ID": "ID",
+          "DataType": "Long",
+          "Options": {}
+        },
+        {
+          "ColumnName": "Accession",
+          "ID": "",
+          "DataType": "String",
+          "Options": {}
+        },
+        {
+          "ColumnName": "Abundances Normalized F4 Sample BR1 Uninfected Female",
+          "ID": "",
+          "DataType": "Float",
+          "Options": {
+            "DataGroupName": "AbundancesNormalized"
+          }
+        },
+        {
+          "ColumnName": "Abundances Normalized F5 Sample BR2 Uninfected Female",
+          "ID": "",
+          "DataType": "Float",
+          "Options": {
+            "DataGroupName": "AbundancesNormalized"
+          }
+        },
+        {
+          "ColumnName": "Abundances Normalized F6 Sample BR3 Uninfected Female",
+          "ID": "",
+          "DataType": "Float",
+          "Options": {
+            "DataGroupName": "AbundancesNormalized"
+          }
+        },
+        {
+          "ColumnName": "Abundances Normalized F1 Sample BR1 Uninfected Male",
+          "ID": "",
+          "DataType": "Float",
+          "Options": {
+            "DataGroupName": "AbundancesNormalized"
+          }
+        },
+        {
+          "ColumnName": "Abundances Normalized F2 Sample BR2 Uninfected Male",
+          "ID": "",
+          "DataType": "Float",
+          "Options": {
+            "DataGroupName": "AbundancesNormalized"
+          }
+        },
+        {
+          "ColumnName": "Abundances Normalized F3 Sample BR3 Uninfected Male",
+          "ID": "",
+          "DataType": "Float",
+          "Options": {
+            "DataGroupName": "AbundancesNormalized"
+          }
+        },
+        {
+          "ColumnName": "Found in Sample F4 Sample BR1 Uninfected Female",
+          "ID": "",
+          "DataType": "Int",
+          "Options": {
+            "DataGroupName": "FoundinSamples"
+          }
+        },
+        {
+          "ColumnName": "Found in Sample F5 Sample BR2 Uninfected Female",
+          "ID": "",
+          "DataType": "Int",
+          "Options": {
+            "DataGroupName": "FoundinSamples"
+          }
+        },
+        {
+          "ColumnName": "Found in Sample F6 Sample BR3 Uninfected Female",
+          "ID": "",
+          "DataType": "Int",
+          "Options": {
+            "DataGroupName": "FoundinSamples"
+          }
+        },
+        {
+          "ColumnName": "Found in Sample F1 Sample BR1 Uninfected Male",
+          "ID": "",
+          "DataType": "Int",
+          "Options": {
+            "DataGroupName": "FoundinSamples"
+          }
+        },
+        {
+          "ColumnName": "Found in Sample F2 Sample BR2 Uninfected Male",
+          "ID": "",
+          "DataType": "Int",
+          "Options": {
+            "DataGroupName": "FoundinSamples"
+          }
+        },
+        {
+          "ColumnName": "Found in Sample F3 Sample BR3 Uninfected Male",
+          "ID": "",
+          "DataType": "Int",
+          "Options": {
+            "DataGroupName": "FoundinSamples"
+          }
+        },
+        {
+          "ColumnName": "Abundance Ratio Adj P-Value Uninfected Female  Uninfected Male",
+          "ID": "",
+          "DataType": "Float",
+          "Options": {
+            "DataGroupName": "AbundanceRatioAdjPValue"
+          }
+        },
+        {
+          "ColumnName": "Abundance Ratio P-Value Uninfected Female  Uninfected Male",
+          "ID": "",
+          "DataType": "Float",
+          "Options": {
+            "DataGroupName": "AbundanceRatioPValue"
+          }
+        },
+        {
+          "ColumnName": "Abundance Ratio Uninfected Female  Uninfected Male",
+          "ID": "",
+          "DataType": "Float",
+          "Options": {
+            "DataGroupName": "AbundanceRatios"
+          }
+        },
+        {
+          "ColumnName": "Abundance Ratio log2 Uninfected Female  Uninfected Male",
+          "ID": "",
+          "DataType": "Float",
+          "Options": {
+            "DataGroupName": "AbundanceRatioslog2"
+          }
+        },
+        {
+          "ColumnName": "Abundances Grouped Uninfected Female",
+          "ID": "",
+          "DataType": "Float",
+          "Options": {
+            "DataGroupName": "AbundancesGrouped"
+          }
+        },
+        {
+          "ColumnName": "Abundances Grouped Uninfected Male",
+          "ID": "",
+          "DataType": "Float",
+          "Options": {
+            "DataGroupName": "AbundancesGrouped"
+          }
+        },
+        {
+          "ColumnName": "Abundances Grouped Count Uninfected Female",
+          "ID": "",
+          "DataType": "Int",
+          "Options": {
+            "DataGroupName": "AbundancesGroupedCounts"
+          }
+        },
+        {
+          "ColumnName": "Abundances Grouped Count Uninfected Male",
+          "ID": "",
+          "DataType": "Int",
+          "Options": {
+            "DataGroupName": "AbundancesGroupedCounts"
+          }
+        }
+      ]
+    }
+  ]
+}
