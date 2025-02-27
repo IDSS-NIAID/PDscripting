@@ -5,27 +5,26 @@
 
 
 #### Setup ####
-#' Requested tables and columns: "Proteins: Accession, Abundances Normalized, Found in Samples"
+#' Requested tables and columns: "Proteins: Accession,Abundances Normalized,Found in Samples,Abundance Ratio Adj P-Value,Abundance Ratio P-Value,Abundance Ratios,Abundance Ratios log2,Abundances Grouped,Abundances Grouped Count,Abundances Grouped CV,Abundances Scaled"
 
-
+# load packages
+library(dplyr)
 library(rjson)
 library(stringr)
-library(PDscripting)
-
-# proportion of samples with non-missing, above-detection-limit values required to keep abundance measures
-prop_good <- 0.5
-
-# detection limit
-llod <- 1e6
 
 
 #### Read in node args from PD ####
 
 if(!interactive())
 {
+  # check most recent version of PDscripting and update if necessary
+  devtools::install_github('IDSS-NIAID/PDscripting', 'dev')
+  library(PDscripting)
+
   # this will run on the scripting node (it runs in batch mode)
   node_args <- fromJSON(file = commandArgs(trailingOnly = TRUE)[1])
 }else{
+  devtools::load_all()
   root <- here::here()
 
   # for manual debugging
@@ -52,7 +51,10 @@ dat <- PD_clean(node_args$Tables[[1]]$DataFile, colTypes)
 
 #### Filtering checks ####
 
-dat_check <- PD_check_missingness(dat, startsWith = "Abundances.Normalized")
+dat_check <- PD_check_missingness(dat,
+                                  startsWith = "Abundances.Normalized",
+                                  prop_good = 0.5,
+                                  llod = 1e6)
 
 
 # actual filtering

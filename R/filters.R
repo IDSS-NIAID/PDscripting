@@ -12,7 +12,7 @@
 #'
 #' @return data frame with missingness information and which rows to drop
 #' @export
-#' @importFrom dplyr filter group_by mutate select starts_with ungroup
+#' @importFrom dplyr filter group_by mutate n select starts_with ungroup
 #' @importFrom rlang sym
 #' @importFrom stringr str_extract str_replace
 #' @importFrom tidyr pivot_longer pivot_wider
@@ -21,7 +21,7 @@ PD_check_missingness <- function(dat, startsWith, prop_good = 0.5, llod = 1e6)
   # take care of annoying no visible binding notes
   if(FALSE)
     Accession <- sample_replicate <- condition <- sample <- rep <- drop <- ngood <- thresh_good <- id <-
-      Abundances.Normalized <- `Proteins Unique Sequence ID` <- n <- NULL
+      Abundances.Normalized <- `Proteins Unique Sequence ID` <- NULL
 
   # convert to long format for summarization
   dat_check <- dat |>

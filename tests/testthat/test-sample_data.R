@@ -1,6 +1,7 @@
 # test-sample_data.R
 # test a few sample data sets
 
+library(dplyr)
 
 # filter protein abundance statistics for a file with a single replicate
 test_that("Single replicate works", {

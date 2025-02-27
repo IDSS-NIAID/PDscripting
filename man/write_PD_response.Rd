@@ -4,7 +4,7 @@
 \alias{write_PD_response}
 \title{write_PD_response}
 \usage{
-write_PD_response(node_args, dat_filtered, colTypes, startsWith)
+write_PD_response(node_args, dat_filtered, colTypes, startsWith, save = TRUE)
 }
 \arguments{
 \item{node_args}{node args from PD}
@@ -14,6 +14,8 @@ write_PD_response(node_args, dat_filtered, colTypes, startsWith)
 \item{colTypes}{column types data.frame from \code{PD_colTypes()}}
 
 \item{startsWith}{Character value identifying columns to check (passed to \code{starts_with()})}
+
+\item{save}{Logical value indicating whether to save the node response file}
 }
 \value{
 Invisibly returns node_response JSON list
