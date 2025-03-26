@@ -9,34 +9,44 @@
 
 # load packages
 library(dplyr)
+library(readr)
 library(rjson)
 library(stringr)
 
 
 #### Read in node args from PD ####
 
-if(!interactive())
+node_args_path <- commandArgs(trailingOnly = TRUE)[1]
+
+if(!is.na(node_args_path))
 {
   # check most recent version of PDscripting and update if necessary
   devtools::install_github('IDSS-NIAID/PDscripting', 'dev')
   library(PDscripting)
 
-  # this will run on the scripting node (it runs in batch mode)
-  node_args <- fromJSON(file = commandArgs(trailingOnly = TRUE)[1])
+  # this will run on the scripting node (when running in batch mode with arguments)
+  node_args <- fromJSON(file = node_args_path)
 }else{
-  devtools::load_all()
-  root <- here::here()
+  if(interactive())
+  {
+    # when running interactively with no arguments, assume manual debugging
+    devtools::load_all()
 
-  # for manual debugging
-  node_args <- fromJSON(file = file.path(root, 'debug', 'node_args.json'))
+    root <- here::here()
 
-  # change paths to `debug/`
-  node_args$Tables[[1]]$DataFile <- str_replace(node_args$Tables[[1]]$DataFile,
-                                                fixed(dirname(node_args$Tables[[1]]$DataFile)),
-                                                'debug')
-  node_args$ExpectedResponsePath <- str_replace(node_args$ExpectedResponsePath,
-                                                fixed(dirname(node_args$ExpectedResponsePath)),
-                                                'debug')
+    node_args <- fromJSON(file = file.path(root, 'debug', 'node_args.json'))
+
+    # change paths to `debug/`
+    node_args$Tables[[1]]$DataFile <- str_replace(node_args$Tables[[1]]$DataFile,
+                                                  fixed(dirname(node_args$Tables[[1]]$DataFile)),
+                                                  'debug')
+    node_args$ExpectedResponsePath <- str_replace(node_args$ExpectedResponsePath,
+                                                  fixed(dirname(node_args$ExpectedResponsePath)),
+                                                  'debug')
+  }else{
+    # when running in batch mode with no arguments, assume we are running the vignette
+    library(PDscripting)
+  }
 }
 
 
